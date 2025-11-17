@@ -1,3 +1,0 @@
-# Deployment
-
-(… full deployment details)
