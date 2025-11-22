@@ -1,14 +1,27 @@
 import { signIn } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
-      <div className="w-full max-w-md space-y-8 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-8 shadow-2xl">
+    <div className="bg-background relative flex min-h-screen flex-col items-center justify-center overflow-hidden">
+      {/* Background Gradients */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 left-1/2 h-full w-full max-w-7xl -translate-x-1/2 opacity-40">
+          <div className="bg-primary/20 absolute top-[-10%] left-[-10%] h-[40%] w-[40%] rounded-full blur-[120px]" />
+          <div className="bg-accent/20 absolute right-[-10%] bottom-[-10%] h-[40%] w-[40%] rounded-full blur-[120px]" />
+        </div>
+      </div>
+
+      <div className="border-border/50 bg-card/50 w-full max-w-md space-y-8 rounded-2xl border px-8 py-10 shadow-2xl ring-1 ring-white/20 backdrop-blur-sm">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold tracking-tight">
+          <Link href="/" className="mb-6 inline-block">
+            <span className="text-foreground text-2xl font-bold">Navio</span>
+          </Link>
+          <h2 className="text-foreground text-3xl font-bold tracking-tight">
             Welcome back
           </h2>
-          <p className="mt-2 text-sm text-zinc-400">
+          <p className="text-muted-foreground mt-2 text-sm">
             Sign in to your account to continue
           </p>
         </div>
@@ -20,9 +33,11 @@ export default function LoginPage() {
               await signIn("google", { redirectTo: "/dashboard" });
             }}
           >
-            <button
+            <Button
               type="submit"
-              className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-black shadow-sm transition-all duration-200 hover:bg-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              variant="outline"
+              size="lg"
+              className="border-input bg-background hover:bg-accent hover:text-accent-foreground h-12 w-full gap-3 text-base font-medium transition-all"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -43,7 +58,7 @@ export default function LoginPage() {
                 />
               </svg>
               Sign in with Google
-            </button>
+            </Button>
           </form>
         </div>
       </div>

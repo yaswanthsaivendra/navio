@@ -1,3 +1,9 @@
+import { Hero } from "@/components/landing/hero";
+
 export default function Home() {
-  return <div className="text-3xl font-bold underline">Hello World</div>;
+  return (
+    <main className="bg-background min-h-screen">
+      <Hero />
+    </main>
+  );
 }

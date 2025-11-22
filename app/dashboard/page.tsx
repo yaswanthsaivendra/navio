@@ -1,43 +1,29 @@
-import { auth, signOut } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+} from "@/components/ui/breadcrumb";
 
 export default async function DashboardPage() {
-  const session = await auth();
-
-  if (!session) {
-    redirect("/api/auth/signin");
-  }
-
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="mb-8 text-4xl font-bold">Dashboard</h1>
-      <div className="flex flex-col items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-8">
-        {session.user?.image && (
-          <img
-            src={session.user.image}
-            alt="Profile"
-            className="h-20 w-20 rounded-full"
-          />
-        )}
-        <div className="text-center">
-          <p className="text-xl font-semibold">{session.user?.name}</p>
-          <p className="text-gray-400">{session.user?.email}</p>
-        </div>
-
-        <form
-          action={async () => {
-            "use server";
-            await signOut();
-          }}
-        >
-          <button
-            type="submit"
-            className="rounded-md bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
-          >
-            Sign Out
-          </button>
-        </form>
+    <>
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Dashboard</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        {/* Dashboard content goes here */}
       </div>
-    </div>
+    </>
   );
 }
