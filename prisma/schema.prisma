@@ -21,6 +21,7 @@ model User {
 
   // Multi Tenancy
   memberships TenantMembership[]
+  sentInvitations Invitation[] @relation("InvitedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -33,6 +34,7 @@ model Tenant {
 
   // Multi Tenancy
   memberships TenantMembership[]
+  invitations Invitation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -101,4 +103,34 @@ model TenantMembership {
   @@unique([userId, tenantId])
   @@index([userId])
   @@index([tenantId])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model Invitation {
+  id        String   @id @default(cuid())
+  email     String
+  role      TenantRole @default(MEMBER)
+  status    InvitationStatus @default(PENDING)
+  
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  invitedBy String
+  inviter   User     @relation("InvitedBy", fields: [invitedBy], references: [id])
+  
+  token     String   @unique @default(cuid())
+  expiresAt DateTime
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+  @@index([tenantId])
+  @@index([token])
 }
