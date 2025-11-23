@@ -30,7 +30,6 @@ model User {
 model Tenant {
   id        String   @id @default(cuid())
   name      String
-  slug      String   @unique
 
   // Multi Tenancy
   memberships TenantMembership[]
