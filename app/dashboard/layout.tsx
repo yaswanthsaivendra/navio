@@ -1,8 +1,13 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { getTenantsByUser } from "@/lib/actions/tenant";
+import { getActiveTenant } from "@/lib/actions/active-tenant";
 
 export default async function DashboardLayout({
   children,
@@ -23,10 +28,22 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
+  // Get active tenant
+  const activeTenant = await getActiveTenant();
+
   return (
     <SidebarProvider>
-      <AppSidebar user={session.user} />
-      <SidebarInset>{children}</SidebarInset>
+      <AppSidebar
+        user={session.user}
+        tenants={tenants}
+        activeTenant={activeTenant || tenants[0]}
+      />
+      <SidebarInset>
+        <header className="flex h-14 shrink-0 items-center gap-2 px-4 pt-2">
+          <SidebarTrigger />
+        </header>
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   );
 }

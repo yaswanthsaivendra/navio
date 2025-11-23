@@ -100,8 +100,20 @@ export async function createInvitation(
 
   revalidatePath("/dashboard/team/invites");
 
-  // TODO: Send invitation email
-  // await sendInvitationEmail(invitation);
+  // Send invitation email
+  try {
+    const { sendInvitationEmail } = await import("@/lib/email");
+    await sendInvitationEmail({
+      to: invitation.email,
+      invitedByName: invitation.inviter.name,
+      organizationName: invitation.tenant.name,
+      token: invitation.token,
+      role: invitation.role,
+    });
+  } catch (error) {
+    console.error("Failed to send invitation email:", error);
+    // Don't throw - invitation was created successfully
+  }
 
   return invitation;
 }
@@ -369,8 +381,20 @@ export async function resendInvitation(invitationId: string) {
 
   revalidatePath("/dashboard/team/invites");
 
-  // TODO: Send invitation email
-  // await sendInvitationEmail(updated);
+  // Send invitation email
+  try {
+    const { sendInvitationEmail } = await import("@/lib/email");
+    await sendInvitationEmail({
+      to: updated.email,
+      invitedByName: updated.inviter.name,
+      organizationName: updated.tenant.name,
+      token: updated.token,
+      role: updated.role,
+    });
+  } catch (error) {
+    console.error("Failed to send invitation email:", error);
+    // Don't throw - invitation was updated successfully
+  }
 
   return updated;
 }

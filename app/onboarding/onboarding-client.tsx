@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { createTenant } from "@/lib/actions/tenant";
 import { createInvitation } from "@/lib/actions/invitation";
 import {
@@ -195,13 +196,13 @@ export default function OnboardingClient() {
                 >
                   Organization Name
                 </label>
-                <input
+                <Input
                   id="name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Acme Corporation"
-                  className="border-input bg-background text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/50 h-12 w-full rounded-lg border px-4 text-base transition-all outline-none focus:ring-[3px]"
+                  className="h-12 rounded-lg px-4 text-base"
                   required
                   disabled={isSubmitting}
                   maxLength={50}
@@ -294,14 +295,14 @@ export default function OnboardingClient() {
 
                 {/* Input */}
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     id="email"
                     type="email"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     onKeyDown={handleEmailKeyDown}
                     placeholder="colleague@example.com"
-                    className="border-input bg-background text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/50 h-12 flex-1 rounded-lg border px-4 text-base transition-all outline-none focus:ring-[3px]"
+                    className="h-12 flex-1 rounded-lg px-4 text-base"
                     disabled={isSubmitting}
                     autoFocus
                   />
