@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { FlowErrors } from "@/lib/errors";
+import { AppErrors } from "@/lib/errors";
 import type { Flow, TenantMembership } from "@/lib/generated/prisma/client";
 
 /**
@@ -20,7 +20,7 @@ export async function verifyFlowAccess(
   });
 
   if (!flow) {
-    throw FlowErrors.NOT_FOUND;
+    throw AppErrors.FLOW_NOT_FOUND;
   }
 
   // Check if user has membership in the flow's tenant
@@ -34,7 +34,7 @@ export async function verifyFlowAccess(
   });
 
   if (!membership) {
-    throw FlowErrors.TENANT_ACCESS_DENIED;
+    throw AppErrors.TENANT_ACCESS_DENIED;
   }
 
   return { flow, membership };
@@ -89,7 +89,7 @@ export async function verifyTenantAccess(
   });
 
   if (!membership) {
-    throw FlowErrors.TENANT_ACCESS_DENIED;
+    throw AppErrors.TENANT_ACCESS_DENIED;
   }
 
   return membership;

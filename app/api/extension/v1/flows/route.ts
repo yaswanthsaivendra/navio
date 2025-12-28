@@ -1,36 +1,30 @@
-import { NextResponse } from "next/server";
-import { validateExtensionToken } from "@/lib/middleware/extension-auth";
+import { z } from "zod";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { FlowError, formatErrorResponse } from "@/lib/errors";
+import { AppError, AppErrors } from "@/lib/errors";
 import { CreateFlowSchema } from "@/lib/validations/flow";
-import { verifyTenantAccess } from "@/lib/utils/flow-auth";
-import {
-  uploadScreenshot,
-  generateScreenshotKey,
-  base64ToBuffer,
-} from "@/lib/storage";
+import { uploadFlowStepScreenshots } from "@/lib/utils/screenshot-upload";
+import { withApiValidation } from "@/lib/middleware/api-validation";
+import { createSuccessResponse } from "@/lib/utils/api-response";
 
 /**
  * POST /api/extension/v1/flows
  * Create a new flow with steps (Extension API)
  * Requires: Valid JWT token in Authorization header
  */
-export async function POST(request: Request) {
-  try {
-    // Validate authentication
-    const authHeader = request.headers.get("authorization");
-    const tokenPayload = await validateExtensionToken(authHeader);
+export const POST = withApiValidation(
+  {
+    body: CreateFlowSchema,
+    requireExtensionAuth: true,
+    requireTenantAccess: true,
+  },
+  async (request: NextRequest, context) => {
+    if (!context.extensionToken || !context.body) {
+      throw AppErrors.UNAUTHORIZED;
+    }
 
-    // Verify user still has access to tenant (in case membership was revoked)
-    await verifyTenantAccess(tokenPayload.tenantId, tokenPayload.userId);
-
-    // Parse and validate request body
-    const body = await request.json().catch(() => {
-      throw new FlowError("Invalid JSON", "INVALID_JSON", 400);
-    });
-
-    // Validate input with Zod
-    const validated = CreateFlowSchema.parse(body);
+    const validated = context.body as z.infer<typeof CreateFlowSchema>;
+    const { userId, tenantId } = context.extensionToken;
 
     // Validate step orders are unique
     const stepOrders = validated.steps.map(
@@ -38,15 +32,10 @@ export async function POST(request: Request) {
     );
     const uniqueOrders = new Set(stepOrders);
     if (stepOrders.length !== uniqueOrders.size) {
-      return NextResponse.json(
-        formatErrorResponse(
-          new FlowError(
-            "Step orders must be unique. Multiple steps cannot have the same order value.",
-            "DUPLICATE_STEP_ORDER",
-            400
-          )
-        ),
-        { status: 400 }
+      throw new AppError(
+        "Step orders must be unique. Multiple steps cannot have the same order value.",
+        "DUPLICATE_STEP_ORDER",
+        400
       );
     }
 
@@ -58,8 +47,8 @@ export async function POST(request: Request) {
         const createdFlow = await tx.flow.create({
           data: {
             name: validated.name,
-            tenantId: tokenPayload.tenantId,
-            createdBy: tokenPayload.userId,
+            tenantId: tenantId,
+            createdBy: userId,
             meta: validated.meta || undefined,
           },
         });
@@ -95,102 +84,35 @@ export async function POST(request: Request) {
 
     // PHASE 2: Upload screenshots OUTSIDE transaction (external API calls)
     // This happens after DB transaction commits, so flow exists even if uploads fail
-    const uploadResults = await Promise.allSettled(
-      validated.steps.map(async (step, index) => {
-        const stepId = steps[index].id;
-        const uploads: {
-          screenshotThumbUrl: string | null;
-          screenshotFullUrl: string | null;
-        } = {
-          screenshotThumbUrl: null,
-          screenshotFullUrl: null,
-        };
+    const stepsWithMeta = validated.steps.map((step, index) => ({
+      id: steps[index].id,
+      meta: step.meta,
+    }));
 
-        // Upload thumbnail if present
-        if (step.meta?.screenshotThumb) {
-          try {
-            const { buffer, contentType } = base64ToBuffer(
-              step.meta.screenshotThumb as string
-            );
-            const key = generateScreenshotKey(
-              flow.id,
-              stepId,
-              "thumb",
-              contentType.includes("jpeg") ? "jpg" : "png"
-            );
-            uploads.screenshotThumbUrl = await uploadScreenshot(
-              key,
-              buffer,
-              contentType
-            );
-          } catch (error) {
-            console.error(`Failed to upload thumbnail for step ${stepId}:`, {
-              error: error instanceof Error ? error.message : "Unknown error",
-            });
-            // Continue - step will exist without thumbnail
-          }
-        }
-
-        // Upload full screenshot if present
-        if (step.meta?.screenshotFull) {
-          try {
-            const { buffer, contentType } = base64ToBuffer(
-              step.meta.screenshotFull as string
-            );
-            const key = generateScreenshotKey(
-              flow.id,
-              stepId,
-              "full",
-              contentType.includes("jpeg") ? "jpg" : "png"
-            );
-            uploads.screenshotFullUrl = await uploadScreenshot(
-              key,
-              buffer,
-              contentType
-            );
-          } catch (error) {
-            console.error(
-              `Failed to upload full screenshot for step ${stepId}:`,
-              {
-                error: error instanceof Error ? error.message : "Unknown error",
-              }
-            );
-            // Continue - step will exist without full screenshot
-          }
-        }
-
-        return { stepId, ...uploads };
-      })
+    const uploadResults = await uploadFlowStepScreenshots(
+      flow.id,
+      stepsWithMeta
     );
 
     // PHASE 3: Update steps with screenshot URLs
     // Update only steps that had successful uploads
     await Promise.allSettled(
-      uploadResults.map(async (result) => {
-        if (result.status === "fulfilled") {
-          const { stepId, screenshotThumbUrl, screenshotFullUrl } =
-            result.value;
+      uploadResults.map(async (uploadResult) => {
+        const { stepId, screenshotThumbUrl, screenshotFullUrl } = uploadResult;
 
-          // Only update if we have at least one screenshot URL
-          if (screenshotThumbUrl || screenshotFullUrl) {
-            try {
-              await prisma.flowStep.update({
-                where: { id: stepId },
-                data: {
-                  screenshotThumbUrl,
-                  screenshotFullUrl,
-                },
-              });
-            } catch (error) {
-              console.error(
-                `Failed to update step ${stepId} with screenshot URLs:`,
-                {
-                  error:
-                    error instanceof Error ? error.message : "Unknown error",
-                }
-              );
-              // Non-critical - step exists, just without screenshot URLs
-            }
+        // Only update if we have at least one screenshot URL
+        if (screenshotThumbUrl || screenshotFullUrl) {
+          try {
+            await prisma.flowStep.update({
+              where: { id: stepId },
+              data: {
+                screenshotThumbUrl,
+                screenshotFullUrl,
+              },
+            });
+          } catch {
+            // Non-critical - step exists, just without screenshot URLs
+            // Error logging should be handled by logging system
           }
         }
       })
@@ -203,31 +125,6 @@ export async function POST(request: Request) {
     });
 
     // Return created flow with updated steps
-    return NextResponse.json({ ...flow, steps: updatedSteps }, { status: 201 });
-  } catch (error) {
-    // Handle Zod validation errors
-    if (error && typeof error === "object" && "issues" in error) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Validation failed",
-            statusCode: 400,
-            details: error.issues,
-          },
-        },
-        { status: 400 }
-      );
-    }
-
-    // Handle FlowError
-    if (error instanceof FlowError) {
-      return NextResponse.json(formatErrorResponse(error), {
-        status: error.statusCode,
-      });
-    }
-
-    // Handle unknown errors
-    return NextResponse.json(formatErrorResponse(error), { status: 500 });
+    return createSuccessResponse({ ...flow, steps: updatedSteps }, 201);
   }
-}
+);

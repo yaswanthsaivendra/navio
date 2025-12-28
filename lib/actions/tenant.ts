@@ -3,6 +3,12 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { AppErrors } from "@/lib/errors";
+import {
+  CreateTenantSchema,
+  UpdateTenantSchema,
+} from "@/lib/validations/tenant";
+import { requireOwnerOrAdmin, requireOwner } from "@/lib/utils/permissions";
 
 /**
  * Create a new tenant (organization) and add the creator as OWNER
@@ -10,18 +16,16 @@ import { revalidatePath } from "next/cache";
 export async function createTenant(name: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
-  // Validate name
-  if (!name || name.trim().length === 0) {
-    throw new Error("Organization name is required");
-  }
+  // Validate input with Zod
+  const validated = CreateTenantSchema.parse({ name });
 
   // Create tenant and membership in a transaction
   const tenant = await prisma.tenant.create({
     data: {
-      name: name.trim(),
+      name: validated.name,
       memberships: {
         create: {
           userId: session.user.id,
@@ -44,7 +48,7 @@ export async function createTenant(name: string) {
 export async function getTenantsByUser() {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   const memberships = await prisma.tenantMembership.findMany({
@@ -74,7 +78,7 @@ export async function getTenantsByUser() {
 export async function getTenantById(tenantId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   // Check if user has access to this tenant
@@ -91,7 +95,7 @@ export async function getTenantById(tenantId: string) {
   });
 
   if (!membership) {
-    throw new Error("Access denied");
+    throw AppErrors.TENANT_ACCESS_DENIED;
   }
 
   return {
@@ -107,29 +111,22 @@ export async function getTenantById(tenantId: string) {
 export async function updateTenant(tenantId: string, data: { name?: string }) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
+
+  // Validate input with Zod
+  const validated = UpdateTenantSchema.parse(data);
 
   // Check if user has OWNER or ADMIN role
-  const membership = await prisma.tenantMembership.findUnique({
-    where: {
-      userId_tenantId: {
-        userId: session.user.id,
-        tenantId,
-      },
-    },
-  });
-
-  if (
-    !membership ||
-    (membership.role !== "OWNER" && membership.role !== "ADMIN")
-  ) {
-    throw new Error("Only owners and admins can update organization settings");
-  }
+  await requireOwnerOrAdmin(
+    tenantId,
+    session.user.id,
+    AppErrors.TENANT_UPDATE_FORBIDDEN
+  );
 
   const tenant = await prisma.tenant.update({
     where: { id: tenantId },
-    data,
+    data: validated,
   });
 
   revalidatePath("/dashboard/settings/organization");
@@ -143,22 +140,15 @@ export async function updateTenant(tenantId: string, data: { name?: string }) {
 export async function deleteTenant(tenantId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   // Check if user is OWNER
-  const membership = await prisma.tenantMembership.findUnique({
-    where: {
-      userId_tenantId: {
-        userId: session.user.id,
-        tenantId,
-      },
-    },
-  });
-
-  if (!membership || membership.role !== "OWNER") {
-    throw new Error("Only the owner can delete the organization");
-  }
+  await requireOwner(
+    tenantId,
+    session.user.id,
+    AppErrors.TENANT_DELETE_FORBIDDEN
+  );
 
   await prisma.tenant.delete({
     where: { id: tenantId },

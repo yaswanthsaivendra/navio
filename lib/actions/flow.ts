@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { FlowError, FlowErrors } from "@/lib/errors";
+import { AppError, AppErrors } from "@/lib/errors";
 import {
   CreateFlowSchema,
   UpdateFlowSchema,
@@ -18,13 +18,8 @@ import {
   verifyFlowAccess,
 } from "@/lib/utils/flow-auth";
 import type { Prisma } from "@/lib/generated/prisma/client";
-import {
-  uploadScreenshot,
-  generateScreenshotKey,
-  base64ToBuffer,
-  deleteScreenshot,
-  extractKeyFromUrl,
-} from "@/lib/storage";
+import { deleteScreenshot, extractKeyFromUrl } from "@/lib/storage";
+import { uploadFlowStepScreenshots } from "@/lib/utils/screenshot-upload";
 
 /**
  * Get all flows for the active tenant
@@ -37,12 +32,12 @@ export async function getFlows(filters?: {
 }) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw FlowErrors.UNAUTHORIZED;
+    throw AppErrors.UNAUTHORIZED;
   }
 
   const activeTenant = await getActiveTenant();
   if (!activeTenant) {
-    throw new Error("No active tenant");
+    throw AppErrors.TENANT_NOT_FOUND;
   }
 
   const where: Prisma.FlowWhereInput = {
@@ -112,7 +107,7 @@ export async function getFlows(filters?: {
 export async function getFlowById(flowId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw FlowErrors.UNAUTHORIZED;
+    throw AppErrors.UNAUTHORIZED;
   }
 
   await verifyFlowAccess(flowId, session.user.id);
@@ -169,7 +164,7 @@ export async function getFlowById(flowId: string) {
 export async function createFlow(data: CreateFlowInput) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw FlowErrors.UNAUTHORIZED;
+    throw AppErrors.UNAUTHORIZED;
   }
 
   // Validate input
@@ -177,7 +172,7 @@ export async function createFlow(data: CreateFlowInput) {
 
   const activeTenant = await getActiveTenant();
   if (!activeTenant) {
-    throw new Error("No active tenant");
+    throw AppErrors.TENANT_NOT_FOUND;
   }
 
   // Verify user has access to tenant
@@ -188,7 +183,7 @@ export async function createFlow(data: CreateFlowInput) {
   const stepOrders = validated.steps.map((step, index) => step.order ?? index);
   const uniqueOrders = new Set(stepOrders);
   if (stepOrders.length !== uniqueOrders.size) {
-    throw new FlowError(
+    throw new AppError(
       "Step orders must be unique. Multiple steps cannot have the same order value.",
       "DUPLICATE_STEP_ORDER",
       400
@@ -240,100 +235,32 @@ export async function createFlow(data: CreateFlowInput) {
 
   // PHASE 2: Upload screenshots OUTSIDE transaction (external API calls)
   // This happens after DB transaction commits, so flow exists even if uploads fail
-  const uploadResults = await Promise.allSettled(
-    validated.steps.map(async (step, index) => {
-      const stepId = steps[index].id;
-      const uploads: {
-        screenshotThumbUrl: string | null;
-        screenshotFullUrl: string | null;
-      } = {
-        screenshotThumbUrl: null,
-        screenshotFullUrl: null,
-      };
+  const stepsWithMeta = validated.steps.map((step, index) => ({
+    id: steps[index].id,
+    meta: step.meta,
+  }));
 
-      // Upload thumbnail if present
-      if (step.meta?.screenshotThumb) {
-        try {
-          const { buffer, contentType } = base64ToBuffer(
-            step.meta.screenshotThumb as string
-          );
-          const key = generateScreenshotKey(
-            flow.id,
-            stepId,
-            "thumb",
-            contentType.includes("jpeg") ? "jpg" : "png"
-          );
-          uploads.screenshotThumbUrl = await uploadScreenshot(
-            key,
-            buffer,
-            contentType
-          );
-        } catch (error) {
-          console.error(`Failed to upload thumbnail for step ${stepId}:`, {
-            error: error instanceof Error ? error.message : "Unknown error",
-          });
-          // Continue - step will exist without thumbnail
-        }
-      }
-
-      // Upload full screenshot if present
-      if (step.meta?.screenshotFull) {
-        try {
-          const { buffer, contentType } = base64ToBuffer(
-            step.meta.screenshotFull as string
-          );
-          const key = generateScreenshotKey(
-            flow.id,
-            stepId,
-            "full",
-            contentType.includes("jpeg") ? "jpg" : "png"
-          );
-          uploads.screenshotFullUrl = await uploadScreenshot(
-            key,
-            buffer,
-            contentType
-          );
-        } catch (error) {
-          console.error(
-            `Failed to upload full screenshot for step ${stepId}:`,
-            {
-              error: error instanceof Error ? error.message : "Unknown error",
-            }
-          );
-          // Continue - step will exist without full screenshot
-        }
-      }
-
-      return { stepId, ...uploads };
-    })
-  );
+  const uploadResults = await uploadFlowStepScreenshots(flow.id, stepsWithMeta);
 
   // PHASE 3: Update steps with screenshot URLs
   // Update only steps that had successful uploads
   await Promise.allSettled(
-    uploadResults.map(async (result) => {
-      if (result.status === "fulfilled") {
-        const { stepId, screenshotThumbUrl, screenshotFullUrl } = result.value;
+    uploadResults.map(async (uploadResult) => {
+      const { stepId, screenshotThumbUrl, screenshotFullUrl } = uploadResult;
 
-        // Only update if we have at least one screenshot URL
-        if (screenshotThumbUrl || screenshotFullUrl) {
-          try {
-            await prisma.flowStep.update({
-              where: { id: stepId },
-              data: {
-                screenshotThumbUrl,
-                screenshotFullUrl,
-              },
-            });
-          } catch (error) {
-            console.error(
-              `Failed to update step ${stepId} with screenshot URLs:`,
-              {
-                error: error instanceof Error ? error.message : "Unknown error",
-              }
-            );
-            // Non-critical - step exists, just without screenshot URLs
-          }
+      // Only update if we have at least one screenshot URL
+      if (screenshotThumbUrl || screenshotFullUrl) {
+        try {
+          await prisma.flowStep.update({
+            where: { id: stepId },
+            data: {
+              screenshotThumbUrl,
+              screenshotFullUrl,
+            },
+          });
+        } catch {
+          // Non-critical - step exists, just without screenshot URLs
+          // Error logging should be handled by logging system
         }
       }
     })
@@ -357,13 +284,13 @@ export async function createFlow(data: CreateFlowInput) {
 export async function updateFlow(flowId: string, data: UpdateFlowInput) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw FlowErrors.UNAUTHORIZED;
+    throw AppErrors.UNAUTHORIZED;
   }
 
   // Check if user can modify this flow
   const canModify = await canModifyFlow(flowId, session.user.id);
   if (!canModify) {
-    throw FlowErrors.FORBIDDEN;
+    throw AppErrors.FORBIDDEN;
   }
 
   // Validate input
@@ -396,13 +323,13 @@ export async function updateFlow(flowId: string, data: UpdateFlowInput) {
 export async function deleteFlow(flowId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw FlowErrors.UNAUTHORIZED;
+    throw AppErrors.UNAUTHORIZED;
   }
 
   // Check if user can delete this flow
   const canDelete = await canDeleteFlow(flowId, session.user.id);
   if (!canDelete) {
-    throw FlowErrors.FORBIDDEN;
+    throw AppErrors.FORBIDDEN;
   }
 
   // Get flow with steps to delete screenshots

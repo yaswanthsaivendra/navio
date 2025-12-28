@@ -1,9 +1,12 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { SignJWT } from "jose";
 import { getActiveTenant } from "@/lib/actions/active-tenant";
 import { verifyTenantAccess } from "@/lib/utils/flow-auth";
-import { FlowError, FlowErrors, formatErrorResponse } from "@/lib/errors";
+import { AppError, AppErrors } from "@/lib/errors";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+} from "@/lib/utils/api-response";
 
 /**
  * POST /api/extension/token
@@ -14,19 +17,14 @@ export async function POST() {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.email) {
-      return NextResponse.json(formatErrorResponse(FlowErrors.UNAUTHORIZED), {
-        status: 401,
-      });
+      return createErrorResponse(AppErrors.UNAUTHORIZED);
     }
 
     // Get active tenant
     const activeTenant = await getActiveTenant();
     if (!activeTenant) {
-      return NextResponse.json(
-        formatErrorResponse(
-          new FlowError("No active tenant", "NO_ACTIVE_TENANT", 400)
-        ),
-        { status: 400 }
+      return createErrorResponse(
+        new AppError("No active tenant", "NO_ACTIVE_TENANT", 400)
       );
     }
 
@@ -39,11 +37,8 @@ export async function POST() {
     );
 
     if (!secret) {
-      return NextResponse.json(
-        formatErrorResponse(
-          new FlowError("Server configuration error", "CONFIG_ERROR", 500)
-        ),
-        { status: 500 }
+      return createErrorResponse(
+        new AppError("Server configuration error", "CONFIG_ERROR", 500)
       );
     }
 
@@ -60,19 +55,13 @@ export async function POST() {
       .setExpirationTime(Math.floor(expiresAt.getTime() / 1000))
       .sign(secret);
 
-    return NextResponse.json({
+    return createSuccessResponse({
       token,
       expiresAt: expiresAt.toISOString(),
       tenantId: activeTenant.id,
       tenantName: activeTenant.name,
     });
   } catch (error) {
-    if (error instanceof FlowError) {
-      return NextResponse.json(formatErrorResponse(error), {
-        status: error.statusCode,
-      });
-    }
-
-    return NextResponse.json(formatErrorResponse(error), { status: 500 });
+    return createErrorResponse(error);
   }
 }

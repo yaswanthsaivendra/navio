@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { getTenantsByUser } from "@/lib/actions/tenant";
 import { cookies } from "next/headers";
+import { AppErrors } from "@/lib/errors";
 
 /**
  * Get the active tenant for the current user
@@ -36,7 +37,7 @@ export async function getActiveTenant() {
 export async function switchTenant(tenantId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   // Verify user has access to this tenant
@@ -44,7 +45,7 @@ export async function switchTenant(tenantId: string) {
   const tenant = tenants.find((t) => t.id === tenantId);
 
   if (!tenant) {
-    throw new Error("Access denied");
+    throw AppErrors.TENANT_ACCESS_DENIED;
   }
 
   // Set cookie

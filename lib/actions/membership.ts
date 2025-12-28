@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import type { TenantRole } from "@/lib/generated/prisma/client";
+import { AppErrors } from "@/lib/errors";
+import { requireOwner } from "@/lib/utils/permissions";
 
 /**
  * Get all members of a tenant
@@ -11,7 +13,7 @@ import type { TenantRole } from "@/lib/generated/prisma/client";
 export async function getMembersByTenant(tenantId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   // Check if user has access to this tenant
@@ -25,7 +27,7 @@ export async function getMembersByTenant(tenantId: string) {
   });
 
   if (!userMembership) {
-    throw new Error("Access denied");
+    throw AppErrors.TENANT_ACCESS_DENIED;
   }
 
   const memberships = await prisma.tenantMembership.findMany({
@@ -60,7 +62,7 @@ export async function updateMemberRole(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   // Get the membership to update
@@ -72,26 +74,19 @@ export async function updateMemberRole(
   });
 
   if (!membership) {
-    throw new Error("Membership not found");
+    throw AppErrors.MEMBERSHIP_NOT_FOUND;
   }
 
   // Check if current user is OWNER of this tenant
-  const userMembership = await prisma.tenantMembership.findUnique({
-    where: {
-      userId_tenantId: {
-        userId: session.user.id,
-        tenantId: membership.tenantId,
-      },
-    },
-  });
-
-  if (!userMembership || userMembership.role !== "OWNER") {
-    throw new Error("Only the owner can change member roles");
-  }
+  await requireOwner(
+    membership.tenantId,
+    session.user.id,
+    AppErrors.MEMBERSHIP_ROLE_UPDATE_FORBIDDEN
+  );
 
   // Prevent changing own role
   if (membership.userId === session.user.id) {
-    throw new Error("You cannot change your own role");
+    throw AppErrors.MEMBERSHIP_CANNOT_CHANGE_OWN_ROLE;
   }
 
   // Update the role
@@ -121,7 +116,7 @@ export async function updateMemberRole(
 export async function removeMember(membershipId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   // Get the membership to remove
@@ -130,26 +125,19 @@ export async function removeMember(membershipId: string) {
   });
 
   if (!membership) {
-    throw new Error("Membership not found");
+    throw AppErrors.MEMBERSHIP_NOT_FOUND;
   }
 
   // Check if current user is OWNER of this tenant
-  const userMembership = await prisma.tenantMembership.findUnique({
-    where: {
-      userId_tenantId: {
-        userId: session.user.id,
-        tenantId: membership.tenantId,
-      },
-    },
-  });
-
-  if (!userMembership || userMembership.role !== "OWNER") {
-    throw new Error("Only the owner can remove members");
-  }
+  await requireOwner(
+    membership.tenantId,
+    session.user.id,
+    AppErrors.MEMBERSHIP_REMOVE_FORBIDDEN
+  );
 
   // Prevent removing self
   if (membership.userId === session.user.id) {
-    throw new Error("You cannot remove yourself from the organization");
+    throw AppErrors.MEMBERSHIP_CANNOT_REMOVE_SELF;
   }
 
   // Count total owners
@@ -162,7 +150,7 @@ export async function removeMember(membershipId: string) {
 
   // Prevent removing the last owner
   if (membership.role === "OWNER" && ownerCount <= 1) {
-    throw new Error("Cannot remove the last owner. Transfer ownership first.");
+    throw AppErrors.MEMBERSHIP_CANNOT_REMOVE_LAST_OWNER;
   }
 
   await prisma.tenantMembership.delete({
@@ -179,7 +167,7 @@ export async function removeMember(membershipId: string) {
 export async function leaveTenant(tenantId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   const membership = await prisma.tenantMembership.findUnique({
@@ -192,7 +180,7 @@ export async function leaveTenant(tenantId: string) {
   });
 
   if (!membership) {
-    throw new Error("You are not a member of this organization");
+    throw AppErrors.MEMBERSHIP_NOT_MEMBER;
   }
 
   // Check if user is the last owner
@@ -205,9 +193,7 @@ export async function leaveTenant(tenantId: string) {
     });
 
     if (ownerCount <= 1) {
-      throw new Error(
-        "Cannot leave as the last owner. Transfer ownership or delete the organization."
-      );
+      throw AppErrors.MEMBERSHIP_CANNOT_LEAVE_AS_LAST_OWNER;
     }
   }
 

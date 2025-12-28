@@ -4,6 +4,9 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import type { TenantRole } from "@/lib/generated/prisma/client";
+import { AppErrors } from "@/lib/errors";
+import { CreateInvitationSchema } from "@/lib/validations/invitation";
+import { requireOwnerOrAdmin } from "@/lib/utils/permissions";
 
 /**
  * Create a new invitation
@@ -16,35 +19,22 @@ export async function createInvitation(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
-  // Validate email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    throw new Error("Invalid email address");
-  }
+  // Validate input with Zod
+  const validated = CreateInvitationSchema.parse({ tenantId, email, role });
 
   // Check if user has permission to invite (OWNER or ADMIN)
-  const membership = await prisma.tenantMembership.findUnique({
-    where: {
-      userId_tenantId: {
-        userId: session.user.id,
-        tenantId,
-      },
-    },
-  });
-
-  if (
-    !membership ||
-    (membership.role !== "OWNER" && membership.role !== "ADMIN")
-  ) {
-    throw new Error("Only owners and admins can invite members");
-  }
+  await requireOwnerOrAdmin(
+    validated.tenantId,
+    session.user.id,
+    AppErrors.INVITE_PERMISSION_DENIED
+  );
 
   // Check if user is already a member
   const existingUser = await prisma.user.findUnique({
-    where: { email },
+    where: { email: validated.email },
   });
 
   if (existingUser) {
@@ -52,27 +42,27 @@ export async function createInvitation(
       where: {
         userId_tenantId: {
           userId: existingUser.id,
-          tenantId,
+          tenantId: validated.tenantId,
         },
       },
     });
 
     if (existingMembership) {
-      throw new Error("This user is already a member of the organization");
+      throw AppErrors.INVITATION_ALREADY_MEMBER;
     }
   }
 
   // Check for existing pending invitation
   const existingInvitation = await prisma.invitation.findFirst({
     where: {
-      email,
-      tenantId,
+      email: validated.email,
+      tenantId: validated.tenantId,
       status: "PENDING",
     },
   });
 
   if (existingInvitation) {
-    throw new Error("An invitation has already been sent to this email");
+    throw AppErrors.INVITATION_ALREADY_SENT;
   }
 
   // Create invitation (expires in 7 days)
@@ -81,9 +71,9 @@ export async function createInvitation(
 
   const invitation = await prisma.invitation.create({
     data: {
-      email,
-      role,
-      tenantId,
+      email: validated.email,
+      role: validated.role,
+      tenantId: validated.tenantId,
       invitedBy: session.user.id,
       expiresAt,
     },
@@ -124,7 +114,7 @@ export async function createInvitation(
 export async function getInvitationsByTenant(tenantId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   // Check if user has access to this tenant
@@ -138,7 +128,7 @@ export async function getInvitationsByTenant(tenantId: string) {
   });
 
   if (!membership) {
-    throw new Error("Access denied");
+    throw AppErrors.TENANT_ACCESS_DENIED;
   }
 
   const invitations = await prisma.invitation.findMany({
@@ -179,7 +169,7 @@ export async function getInvitationByToken(token: string) {
   });
 
   if (!invitation) {
-    throw new Error("Invitation not found");
+    throw AppErrors.INVITATION_NOT_FOUND;
   }
 
   // Check if expired
@@ -191,13 +181,18 @@ export async function getInvitationByToken(token: string) {
         data: { status: "EXPIRED" },
       });
     }
-    throw new Error("This invitation has expired");
+    throw AppErrors.INVITATION_EXPIRED;
   }
 
   if (invitation.status !== "PENDING") {
-    throw new Error(
-      `This invitation has already been ${invitation.status.toLowerCase()}`
-    );
+    if (invitation.status === "ACCEPTED") {
+      throw AppErrors.INVITATION_ALREADY_ACCEPTED;
+    }
+    if (invitation.status === "DECLINED") {
+      throw AppErrors.INVITATION_ALREADY_DECLINED;
+    }
+    // For EXPIRED status (shouldn't happen but handle it)
+    throw AppErrors.INVITATION_EXPIRED;
   }
 
   return invitation;
@@ -209,14 +204,14 @@ export async function getInvitationByToken(token: string) {
 export async function acceptInvitation(token: string) {
   const session = await auth();
   if (!session?.user?.id || !session?.user?.email) {
-    throw new Error("You must be signed in to accept an invitation");
+    throw AppErrors.INVITATION_MUST_BE_SIGNED_IN;
   }
 
   const invitation = await getInvitationByToken(token);
 
   // Check if the signed-in user's email matches the invitation
   if (session.user.email.toLowerCase() !== invitation.email.toLowerCase()) {
-    throw new Error("This invitation was sent to a different email address");
+    throw AppErrors.INVITATION_EMAIL_MISMATCH;
   }
 
   // Check if user is already a member
@@ -235,7 +230,7 @@ export async function acceptInvitation(token: string) {
       where: { id: invitation.id },
       data: { status: "ACCEPTED" },
     });
-    throw new Error("You are already a member of this organization");
+    throw AppErrors.MEMBERSHIP_ALREADY_MEMBER;
   }
 
   // Create membership and update invitation in a transaction
@@ -278,7 +273,7 @@ export async function declineInvitation(token: string) {
 export async function cancelInvitation(invitationId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   const invitation = await prisma.invitation.findUnique({
@@ -286,25 +281,15 @@ export async function cancelInvitation(invitationId: string) {
   });
 
   if (!invitation) {
-    throw new Error("Invitation not found");
+    throw AppErrors.INVITATION_NOT_FOUND;
   }
 
   // Check if user has permission (OWNER or ADMIN)
-  const membership = await prisma.tenantMembership.findUnique({
-    where: {
-      userId_tenantId: {
-        userId: session.user.id,
-        tenantId: invitation.tenantId,
-      },
-    },
-  });
-
-  if (
-    !membership ||
-    (membership.role !== "OWNER" && membership.role !== "ADMIN")
-  ) {
-    throw new Error("Only owners and admins can cancel invitations");
-  }
+  await requireOwnerOrAdmin(
+    invitation.tenantId,
+    session.user.id,
+    AppErrors.INVITATION_CANCEL_FORBIDDEN
+  );
 
   await prisma.invitation.delete({
     where: { id: invitationId },
@@ -320,7 +305,7 @@ export async function cancelInvitation(invitationId: string) {
 export async function resendInvitation(invitationId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw AppErrors.UNAUTHORIZED;
   }
 
   const invitation = await prisma.invitation.findUnique({
@@ -337,25 +322,15 @@ export async function resendInvitation(invitationId: string) {
   });
 
   if (!invitation) {
-    throw new Error("Invitation not found");
+    throw AppErrors.INVITATION_NOT_FOUND;
   }
 
   // Check if user has permission (OWNER or ADMIN)
-  const membership = await prisma.tenantMembership.findUnique({
-    where: {
-      userId_tenantId: {
-        userId: session.user.id,
-        tenantId: invitation.tenantId,
-      },
-    },
-  });
-
-  if (
-    !membership ||
-    (membership.role !== "OWNER" && membership.role !== "ADMIN")
-  ) {
-    throw new Error("Only owners and admins can resend invitations");
-  }
+  await requireOwnerOrAdmin(
+    invitation.tenantId,
+    session.user.id,
+    AppErrors.INVITATION_RESEND_FORBIDDEN
+  );
 
   // Update invitation with new token and expiry
   const expiresAt = new Date();
