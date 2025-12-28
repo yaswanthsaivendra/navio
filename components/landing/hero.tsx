@@ -47,9 +47,9 @@ export function Hero() {
               , Every Time.
             </h1>
             <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed sm:text-xl md:text-2xl">
-              The lightweight overlay tool that guides your sales team through
-              the perfect demo on your real product. No sandboxes, no scripts,
-              just confidence.
+              Create screenshot-based demo flows that guide your sales team
+              through the perfect presentation. No sandboxes, no scripts, just
+              confidence.
             </p>
           </motion.div>
 
@@ -93,7 +93,7 @@ export function Hero() {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="text-primary h-4 w-4" />
-              <span>Real-time Guidance</span>
+              <span>Visual Demo Flows</span>
             </div>
           </motion.div>
         </div>
@@ -107,10 +107,9 @@ export function Hero() {
         >
           <div className="border-border/50 bg-card/50 aspect-[16/9] w-full rounded-2xl border p-2 shadow-2xl ring-1 ring-white/20 backdrop-blur-sm">
             <div className="from-secondary/30 to-background relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br">
-              {/* Mock UI Elements - Representing an Overlay */}
-              <div className="bg-background border-border/50 absolute top-8 right-8 bottom-0 left-8 rounded-t-xl border p-6 opacity-50 shadow-lg grayscale">
-                {/* Background App (Faded) */}
-                <div className="mb-8 flex items-center justify-between">
+              {/* Mock Screenshot Demo Flow */}
+              <div className="bg-background border-border/50 h-full w-full rounded-xl border p-6 shadow-lg">
+                <div className="mb-4 flex items-center justify-between">
                   <div className="bg-secondary/50 h-8 w-32 rounded-md"></div>
                   <div className="flex gap-4">
                     <div className="bg-secondary/50 h-8 w-8 rounded-full"></div>
@@ -120,27 +119,11 @@ export function Hero() {
                   <div className="bg-secondary/30 col-span-2 h-32 rounded-lg"></div>
                   <div className="bg-secondary/30 col-span-1 h-32 rounded-lg"></div>
                 </div>
-              </div>
-
-              {/* The Overlay Card */}
-              <div className="bg-card border-primary/20 absolute top-1/4 right-1/4 left-1/4 z-10 rounded-lg border p-6 shadow-2xl">
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-                    1
-                  </div>
-                  <div>
-                    <h4 className="text-foreground text-lg font-semibold">
-                      Explain the Dashboard
-                    </h4>
-                    <p className="text-muted-foreground mt-1">
-                      &ldquo;Here you can see a high-level overview of all your
-                      metrics. Notice the uptick in Q3...&rdquo;
-                    </p>
-                    <div className="mt-4 flex gap-2">
-                      <div className="bg-primary/20 h-2 w-16 rounded-full"></div>
-                      <div className="bg-secondary h-2 w-8 rounded-full"></div>
-                    </div>
-                  </div>
+                {/* Step indicator */}
+                <div className="mt-6 flex items-center justify-center gap-2">
+                  <div className="bg-primary h-2 w-8 rounded-full"></div>
+                  <div className="bg-secondary h-2 w-2 rounded-full"></div>
+                  <div className="bg-secondary h-2 w-2 rounded-full"></div>
                 </div>
               </div>
             </div>

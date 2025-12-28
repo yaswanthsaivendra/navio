@@ -86,7 +86,7 @@ export default function OrganizationSettingsClient({
   const isOwner = tenant.role === "OWNER";
 
   return (
-    <div className="flex min-h-screen flex-1 flex-col items-center justify-center gap-4 p-4">
+    <div className="flex min-h-screen flex-1 flex-col items-center justify-start gap-4 p-4 pt-8">
       <div className="mx-auto w-full max-w-3xl space-y-8">
         {/* Header */}
         <div>

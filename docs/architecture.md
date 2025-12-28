@@ -8,14 +8,16 @@ The system has two main parts:
    - Tenant (organization) management.
    - User accounts and auth.
    - Flow + step storage and editing.
+   - Screenshot-based demo playback.
    - Analytics and configuration.
 
-2. **Browser Extension (Runtime + Recorder)**:
-   - Injects overlays and presenter panel on top of any web app (the customer’s product).
-   - Records flows (steps) with selectors and metadata.
-   - Plays back flows during live demos.
+2. **Browser Extension (Screenshot Recorder)**:
+   - Records user interactions (clicks, scrolls, navigation) on any website.
+   - Captures screenshots at each step of the workflow.
+   - Uploads screenshots and step metadata to the web app.
+   - No overlay injection – purely for screenshot capture.
 
-Data is stored in a **PostgreSQL database** (Neon/Supabase/Railway), accessed via **Prisma**, with strict multi-tenant boundaries.
+Data is stored in a **PostgreSQL database** (Neon/Supabase/Railway), accessed via **Prisma**, with strict multi-tenant boundaries. Screenshots are stored in **Object Storage** (R2/Supabase).
 
 ---
 
@@ -30,7 +32,7 @@ Data is stored in a **PostgreSQL database** (Neon/Supabase/Railway), accessed vi
     - Auth & user profile.
     - Organizations and membership.
     - Flows and steps CRUD.
-    - Extension sync (fetch/update flows).
+    - Flow and step management.
   - Enforce **organization-scoped access** (multi-tenancy).
 - **Deployment**:
   - Deployed on Vercel (or similar free-tier friendly provider).
@@ -45,7 +47,7 @@ Data is stored in a **PostgreSQL database** (Neon/Supabase/Railway), accessed vi
   - `Organization`
   - `Membership` (User ↔ Organization with role)
   - `Flow` (belongs to an organization, created by a user)
-  - `FlowStep` (belongs to a flow; stores selector, URL, overlay content, etc.)
+   - `FlowStep` (belongs to a flow; stores screenshot, URL, step content, etc.)
   - (Later) `DemoProfile`, `AnalyticsEvent`, `DemoDataOverride`
 - **Multi-tenancy**:
   - Every business object (`Flow`, `FlowStep`, etc.) includes `orgId`.
@@ -56,123 +58,99 @@ Data is stored in a **PostgreSQL database** (Neon/Supabase/Railway), accessed vi
 
 ## 3. Browser Extension Architecture
 
-The extension is split into three key parts:
+The extension is focused on **screenshot capture**, not overlay injection:
 
 1. **Content Script – Recorder**
-   - Injected into the target web app (customer’s product).
-   - Listens to click/interaction events.
+   - Injected into the target web app (customer's product).
+   - Listens to click/interaction events and navigation.
    - Captures:
+     - Screenshot of the current page state
      - URL
-     - DOM selector for the clicked element
-     - Optional screenshot thumbnail (later)
-   - Builds a **flow draft** and sends it to the backend via the extension background script.
+     - Click coordinates (for hotspot annotations)
+     - Optional metadata (element text, type)
+   - Builds a **flow draft** with screenshots and sends to background script.
 
-2. **Content Script – Runtime (Overlay Player)**
-   - When a rep starts a flow:
-     - Fetches the steps from the backend (via background script).
-     - Renders overlay UI:
-       - Highlight around selected element (using stored selector).
-       - Tooltip with step title + description.
-       - Presenter panel with full list of steps + private notes.
-     - Handles **next/previous step** navigation and simple branching.
-   - Manages URL checks:
-     - If the step is tied to a specific URL pattern, it waits until the rep navigates there, then activates the highlight.
-
-3. **Background / Service Worker**
+2. **Background / Service Worker**
    - Manages:
      - Extension-level authentication (uses a token issued by the web app).
-     - Sync between content script and web app APIs.
+     - Uploading screenshots to object storage.
+     - Syncing flow data with web app APIs.
    - Handles all network calls:
-     - `GET /api/extension/flows` – list flows for current org/user.
-     - `GET /api/extension/flows/:id` – fetch single flow.
-     - `POST /api/extension/flows/:id/steps` – upload recorded steps.
+     - `POST /api/extension/flows` – create flow from recording
+     - `POST /api/extension/flows/:id/steps` – upload recorded steps with screenshots
+     - `GET /api/extension/flows` – list flows for current org/user
 
-4. **Extension UI (Popup / Options Page)**
+3. **Extension UI (Popup)**
    - Simple UI to:
      - Sign in / link to the web app.
      - Choose current organization (if user belongs to multiple).
      - Start/stop recording a new flow.
-     - Quickly start a flow on the current page.
+     - View recording progress.
 
 ---
 
 ## 4. Data Flow Scenarios
 
-### 4.1 Recording a Flow
+### 4.1 Recording a Flow (Screenshot-Based)
 
-1. User clicks “Start Recording” in extension popup (or web app triggers it).
+1. User clicks "Start Recording" in extension popup.
 2. Background script tells content script to begin recording.
 3. Content script:
-   - Tracks each click:
-     - DOM selector
+   - Tracks each click/navigation:
+     - Captures screenshot of current page state
      - URL
-     - Optional metadata (e.g., innerText, type of element).
-   - Builds a list of steps in memory.
-4. When user clicks “Stop Recording”:
-   - Content script sends steps to background script.
-   - Background script sends them to:
-     - `POST /api/flows` (creates Flow)
-     - `POST /api/flows/:id/steps` (bulk create FlowSteps)
-5. Web app persists flow and steps in Postgres.
-6. User can now open the web app to edit titles, descriptions, notes, and branching.
+     - Click coordinates
+     - Optional metadata (element text, type)
+   - Builds a list of steps with screenshots in memory.
+4. When user clicks "Stop Recording":
+   - Content script sends steps (with screenshots) to background script.
+   - Background script:
+     - Uploads screenshots to object storage (R2/Supabase)
+     - Sends flow metadata to:
+       - `POST /api/flows` (creates Flow)
+       - `POST /api/flows/:id/steps` (bulk create FlowSteps with screenshot URLs)
+5. Web app persists flow and steps in Postgres (with screenshot URLs).
+6. User can now open the web app to edit titles, descriptions, notes, add annotations/hotspots, and reorder steps.
 
-### 4.2 Playing a Flow (Demo)
+### 4.2 Playing a Flow (Screenshot-Based Demo)
 
-1. From the extension popup or web app, the user selects a flow to run.
-2. Extension background script fetches steps from `GET /api/flows/:id`.
-3. Content script:
-   - Initializes overlay UI and presenter panel.
-   - For each step:
-     - Ensures the current URL matches (or partially matches) the stored URL.
-     - Uses the selector to locate the DOM element.
-     - Draws a highlight + tooltip next to the element.
-     - Shows the corresponding step + notes in the presenter panel.
-4. Rep clicks “Next” or uses keyboard shortcuts to move through the flow.
-
----
-
-## 5. Demo Data Override (Future Phase)
-
-Not MVP, but architectural consideration:
-
-- Introduce `DemoDataOverride` model:
-  - `orgId`, `flowId` (optional), `selector` or `variableKey`, `value`.
-- Extension runtime:
-  - For matched elements or JS variables, overrides:
-    - Text content of nodes.
-    - Certain chart config values (e.g., numbers fed into chart libraries).
-  - Two approaches:
-    - **DOM patching**: direct innerText/attribute changes.
-    - **Lightweight interception**: override JS/global variables used by the UI (harder and library-specific, so this is a later phase).
+1. User opens a flow in the web app.
+2. Web app fetches flow and steps from database.
+3. Web app displays screenshots in sequence:
+   - Shows screenshot for current step
+   - Displays step title, description, and notes
+   - Shows annotations/hotspots if configured
+   - Navigation controls (Next/Previous)
+4. User navigates through steps to view the complete demo flow.
+5. Demo is self-contained – no live product interaction needed.
 
 ---
 
-## 6. Multi-Tenancy & Auth Enforcement
+## 5. Multi-Tenancy & Auth Enforcement
 
 - **Auth**:
   - Web app uses session-based auth (Auth.js).
-  - Extension uses **short-lived JWT** or API key generated per user.
 - **Org Selection**:
   - User can belong to multiple orgs via membership.
-  - Active org is selected in the web app and/or extension settings.
+  - Active org is selected in the web app and extension popup.
 - **API Enforcement**:
   - Every request includes:
     - `userId` from auth.
     - `orgId` (from active membership).
   - Backend checks membership before reading/writing flows.
-- This architecture keeps the extension “dumb” regarding security and lets the backend do all critical checks.
+- The backend enforces all security checks and multi-tenant boundaries.
 
 ---
 
-## 7. Deployment Diagram (Textual)
+## 6. Deployment Diagram (Textual)
 
-- **Browser (Customer’s SaaS app)**:
-  - ↓ Content Script / Overlay
-  - ↔ Background Script (extension)
-  - ↔ HTTPS calls to **Next.js API** (Vercel)
+- **Browser Extension**:
+  - Content Script (recording) → Background Script
+  - Background Script ↔ HTTPS calls to **Next.js API** (Vercel)
+  - Background Script ↔ Object Storage (R2/Supabase) for screenshot uploads
 - **Next.js API**:
   - ↔ PostgreSQL (Neon/Supabase/Railway)
-  - (Later) ↔ Object Storage (R2/Supabase) for screenshots
+  - ↔ Object Storage (R2/Supabase) for screenshots
 
 This gives you one shared codebase (Next.js) for:
 - Frontend (dashboard)

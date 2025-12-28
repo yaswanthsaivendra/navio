@@ -36,29 +36,38 @@
 
 ---
 
-## Browser Extension — React + Plasmo or WXT
-- React for UI
-- Plasmo/WXT for extension tooling
+## Browser Extension — React + Vite
+- React for UI components
+- Vite for build tooling and development
 - Supports Manifest V3
-- Hot reload
-- Easy content script integration
+- Hot reload during development
+- **Purpose**: Screenshot capture during workflow recording
+- **NOT for overlay injection** – purely for recording and screenshot capture
+- Content script for interaction tracking
+- Background script (service worker) for screenshot uploads and API sync
 
 ---
 
-## Storage — Cloudflare R2 or Supabase Storage
+## Storage — Cloudflare R2
 Used for:
-- step thumbnails
 - screenshots
-- flow assets (later)
+- flow assets
 
-Both cheap & scalable.
+**Why Cloudflare R2:**
+- **Best free tier:** 10GB storage, 1M writes, 10M reads/month
+- **No egress fees:** Critical for long-term cost savings
+- **S3-compatible API:** Standard, easy to integrate
+- **Simple setup:** Works with AWS SDK (`@aws-sdk/client-s3`)
+- **Long-term viable:** $0.015/GB storage, predictable pricing
+- **CDN integration:** Fast global delivery
+- **Recommended by Neon:** [Official Neon guide](https://neon.com/docs/guides/file-storage) recommends R2
 
 ---
 
 ## Deployment
 - **Vercel** for Next.js app
-- **Neon** for Postgres
-- **Cloudflare R2** for asset storage
+- **Neon** for Postgres (database)
+- **Cloudflare R2** for screenshot storage
 - **Chrome Web Store** for extension distribution
 
 ---

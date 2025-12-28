@@ -4,22 +4,23 @@ This roadmap is built for fast execution, validation, and short feedback loops.
 
 ---
 
-# Phase 1 — Browser Extension MVP (Core Value)
+# Phase 1 — Screenshot-Based Demo MVP (Core Value)
 ### Goal
-Deliver core demo guidance on top of a real product.
+Deliver core demo guidance using screenshot-based flows.
 
 ### Build:
-- Recorder (captures steps)
-- Overlay runtime with:
-  - step navigation
-  - selector highlighting
-  - tooltip overlays
-  - presenter notes
-- Local storage for saving flows
-- Manual JSON export/import
+- **Browser Extension**:
+  - Screenshot capture during workflow recording
+  - Click/navigation tracking
+  - Screenshot upload to object storage
+- **Web App**:
+  - Flow creation with screenshot steps
+  - Step navigation and viewing
+  - Step titles, descriptions, and notes
+  - Flow management (create, edit, delete)
 
 ### Outcome
-A functioning prototype founders can test without a backend.
+A functioning prototype where users can record workflows via extension (capturing screenshots) and view screenshot-based demo flows in the web app.
 
 ---
 
@@ -31,9 +32,11 @@ A functioning prototype founders can test without a backend.
 - Memberships (OWNER, ADMIN, MEMBER)
 - Flow CRUD (create, update, delete)
 - Flow list + tagging
+- Screenshot storage and management
 - Extension integration:
-  - Fetch flows from API
-  - Sync updates
+  - Extension authentication
+  - Screenshot upload API
+  - Flow sync from extension
 
 ### Outcome
 Your first "real" SaaS product. Ready for early adopters and pilots.
@@ -52,14 +55,14 @@ Teams can create professional demo playbooks.
 
 ---
 
-# Phase 4 — Demo Data Layer (Lite Version)
+# Phase 4 — Advanced Features
 ### Build:
-- DOM text/number overrides (visual)
-- Mapping selectors → values
-- (Optional) API response patching via fetch interception
+- Flow templates and presets
+- Step annotations and callouts
+- Interactive hotspots on screenshots
 
 ### Outcome
-A “Saleo-lite” feature that fixes ugly demo data without heavy engineering.
+Enhanced demo creation and presentation capabilities.
 
 ---
 
