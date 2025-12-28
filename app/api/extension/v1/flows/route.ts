@@ -166,7 +166,7 @@ export async function POST(request: Request) {
     // PHASE 3: Update steps with screenshot URLs
     // Update only steps that had successful uploads
     await Promise.allSettled(
-      uploadResults.map(async (result, index) => {
+      uploadResults.map(async (result) => {
         if (result.status === "fulfilled") {
           const { stepId, screenshotThumbUrl, screenshotFullUrl } =
             result.value;

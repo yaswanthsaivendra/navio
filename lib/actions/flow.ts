@@ -72,16 +72,20 @@ export async function getFlows(filters?: {
     prisma.flow.findMany({
       where,
       include: {
-        steps: {
-          orderBy: {
-            order: "asc",
-          },
-        },
         creator: {
           select: {
             id: true,
             name: true,
             email: true,
+          },
+        },
+        steps: {
+          take: 1,
+          orderBy: {
+            order: "asc",
+          },
+          select: {
+            screenshotThumbUrl: true,
           },
         },
       },
@@ -113,7 +117,7 @@ export async function getFlowById(flowId: string) {
 
   await verifyFlowAccess(flowId, session.user.id);
 
-  return prisma.flow.findUnique({
+  const flow = await prisma.flow.findUnique({
     where: { id: flowId },
     include: {
       steps: {
@@ -136,6 +140,27 @@ export async function getFlowById(flowId: string) {
       },
     },
   });
+
+  if (!flow) {
+    return null;
+  }
+
+  // Normalize screenshot URLs (replace placeholder domains with actual R2 URLs)
+  const { normalizeR2Url } = await import("@/lib/utils/r2-url");
+  const normalizedSteps = flow.steps.map((step) => ({
+    ...step,
+    screenshotThumbUrl: step.screenshotThumbUrl
+      ? normalizeR2Url(step.screenshotThumbUrl)
+      : null,
+    screenshotFullUrl: step.screenshotFullUrl
+      ? normalizeR2Url(step.screenshotFullUrl)
+      : null,
+  }));
+
+  return {
+    ...flow,
+    steps: normalizedSteps,
+  };
 }
 
 /**
@@ -286,7 +311,7 @@ export async function createFlow(data: CreateFlowInput) {
   // PHASE 3: Update steps with screenshot URLs
   // Update only steps that had successful uploads
   await Promise.allSettled(
-    uploadResults.map(async (result, index) => {
+    uploadResults.map(async (result) => {
       if (result.status === "fulfilled") {
         const { stepId, screenshotThumbUrl, screenshotFullUrl } = result.value;
 

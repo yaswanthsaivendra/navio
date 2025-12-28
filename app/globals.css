@@ -46,17 +46,20 @@
 :root {
   --radius: 0.625rem;
   /* Warm & Earthy Palette */
-  --background: oklch(0.98 0.02 95);
-  /* Cream/Sand */
+  --background: oklch(1 0 0);
+  /* Pure White for main content */
   --foreground: oklch(0.25 0.02 95);
   /* Deep Earthy Charcoal */
-  --card: oklch(0.98 0.02 95);
+  --card: oklch(1 0 0);
+  /* White cards */
   --card-foreground: oklch(0.25 0.02 95);
-  --popover: oklch(0.98 0.02 95);
+  --popover: oklch(1 0 0);
+  /* White popovers */
   --popover-foreground: oklch(0.25 0.02 95);
   --primary: oklch(0.45 0.12 140);
   /* Deep Forest Green */
-  --primary-foreground: oklch(0.98 0.02 95);
+  --primary-foreground: oklch(1 0 0);
+  /* White on primary */
   --secondary: oklch(0.92 0.03 95);
   /* Warm Beige */
   --secondary-foreground: oklch(0.25 0.02 95);
@@ -64,7 +67,8 @@
   --muted-foreground: oklch(0.55 0.04 95);
   --accent: oklch(0.65 0.18 45);
   /* Terracotta */
-  --accent-foreground: oklch(0.98 0.02 95);
+  --accent-foreground: oklch(1 0 0);
+  /* White on accent */
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.9 0.02 95);
   --input: oklch(0.9 0.02 95);
@@ -75,11 +79,14 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.98 0.02 95);
+  --sidebar: oklch(0.99 0.01 95);
+  /* Very light cream, closer to white */
   --sidebar-foreground: oklch(0.25 0.02 95);
   --sidebar-primary: oklch(0.45 0.12 140);
-  --sidebar-primary-foreground: oklch(0.98 0.02 95);
-  --sidebar-accent: oklch(0.92 0.03 95);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  /* White on primary */
+  --sidebar-accent: oklch(0.97 0.015 95);
+  /* Slightly darker for hover states */
   --sidebar-accent-foreground: oklch(0.25 0.02 95);
   --sidebar-border: oklch(0.9 0.02 95);
   --sidebar-ring: oklch(0.45 0.12 140);
@@ -127,4 +134,26 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Hide sidebar trigger header on flow detail page */
+body.flow-detail-page ~ * [data-slot="sidebar-wrapper"] header,
+body.flow-detail-page [data-slot="sidebar-wrapper"] header {
+  display: none;
+}
+
+/* Ensure full width on flow detail page */
+body.flow-detail-page [data-slot="sidebar-inset"] {
+  width: 100%;
+  margin-left: 0;
 }
