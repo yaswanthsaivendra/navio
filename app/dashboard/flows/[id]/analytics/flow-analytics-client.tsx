@@ -438,12 +438,10 @@ export default function FlowAnalyticsClient({
             </Card>
 
             {/* Step Analytics */}
-            <Card>
+            <Card className="mb-8">
               <CardHeader>
                 <CardTitle>Step Analytics</CardTitle>
-                <CardDescription>
-                  Views and drop-off rates for each step
-                </CardDescription>
+                <CardDescription>Views for each step</CardDescription>
               </CardHeader>
               <CardContent>
                 {stepsLoading ? (
@@ -523,9 +521,6 @@ export default function FlowAnalyticsClient({
                             <th className="text-muted-foreground pb-2 text-right text-sm font-medium">
                               Views
                             </th>
-                            <th className="text-muted-foreground pb-2 text-right text-sm font-medium">
-                              Drop-off Rate
-                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -547,11 +542,6 @@ export default function FlowAnalyticsClient({
                                     {step.views}
                                   </span>
                                 </td>
-                                <td className="py-3 text-right">
-                                  <span className="font-medium">
-                                    {step.dropOffRate.toFixed(2)}%
-                                  </span>
-                                </td>
                               </tr>
                             )
                           )}
@@ -562,6 +552,9 @@ export default function FlowAnalyticsClient({
                 )}
               </CardContent>
             </Card>
+
+            {/* Bottom spacer for better scroll experience */}
+            <div className="h-32" aria-hidden="true" />
           </div>
         </div>
       </div>

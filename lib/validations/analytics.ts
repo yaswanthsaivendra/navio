@@ -56,6 +56,7 @@ export const FlowAnalyticsOverTimeSchema = z.array(
 
 /**
  * Schema for flow step analytics
+ * Note: Drop-off rates are not included until step-level tracking is implemented
  */
 export const FlowStepAnalyticsSchema = z.array(
   z.object({
@@ -64,7 +65,6 @@ export const FlowStepAnalyticsSchema = z.array(
     stepExplanation: z.string(),
     views: z.number().int().nonnegative(),
     uniqueViewers: z.number().int().nonnegative(),
-    dropOffRate: z.number().nonnegative().max(100),
     completionRate: z.number().nonnegative().max(100),
   })
 );

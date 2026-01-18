@@ -599,26 +599,14 @@ export async function getFlowStepAnalytics(flowId: string) {
 
   // For MVP, we infer step analytics:
   // - All steps are viewed by all viewers (simplified assumption)
-  // - Drop-off is calculated based on completion rate
-  // - Last step has highest completion rate
+  // Note: Drop-off rates are not available until step-level tracking is implemented
   const totalSteps = flow.steps.length;
   const completionRate = totalViews > 0 ? totalCompletions / totalViews : 0;
-
-  // Calculate drop-off rate per step
-  // Simplified: assume linear drop-off for non-completed flows
-  const dropOffPerStep =
-    totalSteps > 1 ? (1 - completionRate) / (totalSteps - 1) : 0;
 
   return flow.steps.map((step, index) => {
     // Views: All viewers see all steps (simplified)
     const views = totalViews;
-
-    // Drop-off: Users who stop after this step
-    // For last step, drop-off is 0 (they completed)
     const isLastStep = index === totalSteps - 1;
-    const dropOffRate = isLastStep
-      ? 0
-      : dropOffPerStep * (totalSteps - index - 1);
 
     return {
       stepId: step.id,
@@ -626,13 +614,7 @@ export async function getFlowStepAnalytics(flowId: string) {
       stepExplanation: step.explanation,
       views,
       uniqueViewers: totalViews, // Simplified: same as views
-      dropOffRate: Math.round(dropOffRate * 100) / 100,
-      completionRate: isLastStep
-        ? completionRate
-        : Math.max(
-            0,
-            completionRate - dropOffPerStep * (totalSteps - index - 1)
-          ),
+      completionRate: isLastStep ? completionRate : 0,
     };
   });
 }

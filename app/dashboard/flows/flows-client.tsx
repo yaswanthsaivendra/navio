@@ -11,8 +11,6 @@ import {
   Search,
   Layers,
   X,
-  Grid3x3,
-  List,
   Filter,
   ChevronLeft,
   ChevronRight,
@@ -44,7 +42,6 @@ export default function FlowsClient({
   const [selectedTags, setSelectedTags] = useState<string[]>(
     searchParams.get("tags")?.split(",").filter(Boolean) || []
   );
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Build filters
   const filters = {
@@ -118,19 +115,6 @@ export default function FlowsClient({
             <p className="text-muted-foreground mt-2">
               Manage and view your automation flows
             </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-            >
-              {viewMode === "grid" ? (
-                <List className="h-4 w-4" />
-              ) : (
-                <Grid3x3 className="h-4 w-4" />
-              )}
-            </Button>
           </div>
         </div>
 
@@ -207,15 +191,9 @@ export default function FlowsClient({
           </p>
         </div>
 
-        {/* Flows Grid/List */}
+        {/* Flows Grid */}
         {isLoading && !data ? (
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-                : "space-y-4"
-            }
-          >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <Card key={i}>
                 <Skeleton className="h-32 w-full rounded-t-lg" />
@@ -241,15 +219,9 @@ export default function FlowsClient({
           </Card>
         ) : (
           <>
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-                  : "space-y-4"
-              }
-            >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {flowsData.flows.map((flow) => (
-                <FlowCard key={flow.id} flow={flow} viewMode={viewMode} />
+                <FlowCard key={flow.id} flow={flow} />
               ))}
             </div>
 
