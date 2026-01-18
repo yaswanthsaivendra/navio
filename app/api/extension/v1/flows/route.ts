@@ -6,6 +6,7 @@ import { CreateFlowSchema } from "@/lib/validations/flow";
 import { uploadFlowStepScreenshots } from "@/lib/utils/screenshot-upload";
 import { withApiValidation } from "@/lib/middleware/api-validation";
 import { createSuccessResponse } from "@/lib/utils/api-response";
+import { createFlowShareInTransaction } from "@/lib/actions/flow-share";
 
 /**
  * POST /api/extension/v1/flows
@@ -72,6 +73,9 @@ export const POST = withApiValidation(
           });
           createdSteps.push(createdStep);
         }
+
+        // Auto-generate share link (industry standard - links ready immediately)
+        await createFlowShareInTransaction(tx, createdFlow.id, userId);
 
         return { flow: createdFlow, steps: createdSteps };
       },

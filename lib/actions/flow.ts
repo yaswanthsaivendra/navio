@@ -20,6 +20,7 @@ import {
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { deleteScreenshot, extractKeyFromUrl } from "@/lib/storage";
 import { uploadFlowStepScreenshots } from "@/lib/utils/screenshot-upload";
+import { createFlowShareInTransaction } from "./flow-share";
 
 /**
  * Get all flows for the active tenant
@@ -223,6 +224,9 @@ export async function createFlow(data: CreateFlowInput) {
         });
         createdSteps.push(createdStep);
       }
+
+      // Auto-generate share link (industry standard - links ready immediately)
+      await createFlowShareInTransaction(tx, createdFlow.id, userId);
 
       return { flow: createdFlow, steps: createdSteps };
     },

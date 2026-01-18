@@ -243,6 +243,8 @@ export default function FlowEditClient({
             {activeStep ? (
               <StepScreenshotViewer
                 step={activeStep}
+                steps={steps}
+                activeStepIndex={activeStepIndex}
                 onNavigateBack={handlePrevious}
                 onNavigateForward={handleNext}
                 canGoBack={activeStepIndex > 0}

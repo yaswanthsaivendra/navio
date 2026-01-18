@@ -10,7 +10,18 @@ const createQueryClient = () =>
       queries: {
         staleTime: 1000 * 60, // 1 minute
         refetchOnWindowFocus: false,
-        retry: 1,
+        retry: (failureCount, error) => {
+          // Don't retry on 4xx errors
+          if (error && typeof error === "object" && "status" in error) {
+            const status = error.status as number;
+            if (status >= 400 && status < 500) {
+              return false;
+            }
+          }
+          // Retry up to 2 times for other errors
+          return failureCount < 2;
+        },
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       },
     },
   });

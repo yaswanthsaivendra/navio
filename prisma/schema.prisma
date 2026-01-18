@@ -7,12 +7,10 @@ datasource db {
   provider = "postgresql"
 }
 
-
-
 model User {
-  id            String  @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String
-  email         String  @unique
+  email         String    @unique
   emailVerified DateTime?
   image         String?
 
@@ -20,68 +18,69 @@ model User {
   sessions Session[]
 
   // Multi Tenancy
-  memberships TenantMembership[]
-  sentInvitations Invitation[] @relation("InvitedBy")
+  memberships     TenantMembership[]
+  sentInvitations Invitation[]       @relation("InvitedBy")
 
   // Flows
   createdFlows Flow[] @relation("FlowCreator")
+
+  // Shares
+  createdShares FlowShare[] @relation("ShareCreator")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Tenant {
-  id        String   @id @default(cuid())
-  name      String
+  id   String @id @default(cuid())
+  name String
 
   // Multi Tenancy
   memberships TenantMembership[]
   invitations Invitation[]
-  flows Flow[]
+  flows       Flow[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Account {
-  id String @id @default(cuid())
+  id     String @id @default(cuid())
   userId String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  provider String
+  provider          String
   providerAccountId String
 
-  type        String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
+  type          String
+  refresh_token String?
+  access_token  String?
+  expires_at    Int?
+  token_type    String?
+  scope         String?
+  id_token      String?
+  session_state String?
 
   @@unique([provider, providerAccountId])
 }
 
 model Session {
-  id String @id @default(cuid())
-  userId String
-  sessionToken String @unique
-  expires DateTime
+  id           String   @id @default(cuid())
+  userId       String
+  sessionToken String   @unique
+  expires      DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-
 model VerificationToken {
   identifier String
-  token      String @unique
+  token      String   @unique
   expires    DateTime
 
   @@unique([identifier, token])
 }
-
 
 enum TenantRole {
   OWNER
@@ -90,15 +89,15 @@ enum TenantRole {
 }
 
 model TenantMembership {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId    String
-  tenantId  String
+  userId   String
+  tenantId String
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  role      TenantRole @default(MEMBER)
+  role TenantRole @default(MEMBER)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -124,71 +123,129 @@ enum FlowStepType {
 }
 
 model Invitation {
-  id        String   @id @default(cuid())
-  email     String
-  role      TenantRole @default(MEMBER)
-  status    InvitationStatus @default(PENDING)
-  
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  
+  id     String           @id @default(cuid())
+  email  String
+  role   TenantRole       @default(MEMBER)
+  status InvitationStatus @default(PENDING)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
   invitedBy String
-  inviter   User     @relation("InvitedBy", fields: [invitedBy], references: [id])
-  
+  inviter   User   @relation("InvitedBy", fields: [invitedBy], references: [id])
+
   token     String   @unique @default(cuid())
   expiresAt DateTime
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([email])
   @@index([tenantId])
   @@index([token])
 }
 
 model Flow {
-  id        String   @id @default(cuid())
-  name      String   // 1-100 characters
-  tenantId  String   // Multi-tenancy
-  createdBy String   // User who created the flow
-  
+  id        String @id @default(cuid())
+  name      String // 1-100 characters
+  tenantId  String // Multi-tenancy
+  createdBy String // User who created the flow
+
   // Relations
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  steps     FlowStep[]
-  creator   User     @relation("FlowCreator", fields: [createdBy], references: [id])
-  
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  steps           FlowStep[]
+  creator         User             @relation("FlowCreator", fields: [createdBy], references: [id])
+  share           FlowShare?
+  analyticsEvents AnalyticsEvent[]
+
   // Metadata (JSONB for flexibility)
-  meta      Json?    // { description?: string, tags?: string[] }
-  
+  meta Json? // { description?: string, tags?: string[] }
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([tenantId])
   @@index([createdBy])
   @@index([createdAt])
 }
 
 model FlowStep {
-  id        String        @id @default(cuid())
-  flowId    String
-  type      FlowStepType
-  url       String       // Full URL where step occurred
-  explanation String      // 1-200 characters, human-readable description
-  order     Int          // Sequential order (0-indexed)
-  
+  id          String       @id @default(cuid())
+  flowId      String
+  type        FlowStepType
+  url         String // Full URL where step occurred
+  explanation String // 1-200 characters, human-readable description
+  order       Int // Sequential order (0-indexed)
+
   // Relations
-  flow      Flow         @relation(fields: [flowId], references: [id], onDelete: Cascade)
-  
+  flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
   // Screenshot URLs (stored in object storage)
-  screenshotThumbUrl String?  // Thumbnail URL (~50-100KB)
-  screenshotFullUrl   String?   // Full screenshot URL (CDN)
-  
+  screenshotThumbUrl String? // Thumbnail URL (~50-100KB)
+  screenshotFullUrl  String? // Full screenshot URL (CDN)
+
   // Metadata (JSONB for flexibility)
-  meta      Json?       // { elementText?, nodeType?, timestamp?, clickCoordinates?, etc. }
-  
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  
+  meta Json? // { elementText?, nodeType?, timestamp?, clickCoordinates?, etc. }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([flowId])
   @@index([order])
+}
+
+enum AnalyticsEventType {
+  VIEW // Flow viewed (public share page loaded)
+  FLOW_COMPLETE // Entire flow completed (viewed all steps)
+}
+
+model FlowShare {
+  id     String @id @default(cuid())
+  flowId String @unique // One share per flow (simpler!)
+  flow   Flow   @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  // Share token (unguessable, URL-safe)
+  shareToken String @unique
+
+  // Metadata
+  createdBy String // User who created the share
+  creator   User   @relation("ShareCreator", fields: [createdBy], references: [id])
+
+  // Simple tracking (for basic analytics)
+  viewCount Int @default(0) // Total views
+
+  // Relations
+  analyticsEvents AnalyticsEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([flowId])
+  @@index([shareToken])
+}
+
+model AnalyticsEvent {
+  id String @id @default(cuid())
+
+  // Relations
+  flowId String
+  flow   Flow   @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  shareId String? // If viewed via share link
+  share   FlowShare? @relation(fields: [shareId], references: [id], onDelete: SetNull)
+
+  // Event data
+  eventType AnalyticsEventType
+
+  // Simple session tracking (just for completion rate)
+  sessionId String // Unique session identifier (simple UUID)
+
+  // Basic metadata (optional, can add more later)
+  timestamp DateTime @default(now())
+
+  @@index([flowId])
+  @@index([shareId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@index([sessionId])
 }
