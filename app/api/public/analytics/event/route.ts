@@ -52,6 +52,7 @@ const AnalyticsEventSchema = z.object({
     message: "Invalid event type. Must be VIEW or FLOW_COMPLETE",
   }),
   sessionId: z.string().min(1, "Session ID is required"),
+  embed: z.boolean().optional(), // Track if this is an embed view
 });
 
 export async function POST(request: NextRequest) {

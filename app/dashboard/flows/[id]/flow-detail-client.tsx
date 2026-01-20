@@ -226,6 +226,7 @@ export default function FlowDetailClient({
       {/* Dialogs */}
       <ShareFlowDialog
         flowId={flow.id}
+        flowName={flow.name}
         open={showShareDialog}
         onOpenChange={setShowShareDialog}
       />

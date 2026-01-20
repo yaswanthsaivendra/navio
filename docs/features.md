@@ -41,6 +41,16 @@
 - Smooth image transitions with preloading
 - Analytics tracking (VIEW, FLOW_COMPLETE events)
 
+#### ✅ Embed Codes (iframe)
+- **Status:** Implemented
+- Embed URL: `/embed/[token]`
+- Generate embed codes from share dialog
+- Responsive embed mode (16:9 aspect ratio)
+- Fixed size embed mode (customizable dimensions)
+- Copy-to-clipboard functionality
+- Security headers configured (CSP frame-ancestors)
+- Analytics tracking with embed flag
+
 #### ✅ Image Access for Shared Flows
 - **Status:** Implemented
 - Public image proxy endpoint (`/api/images/[...path]`)
@@ -52,7 +62,10 @@
 - `app/api/flows/[id]/share/route.ts` - Share API endpoints
 - `app/s/[token]/page.tsx` - Public share page
 - `app/s/[token]/public-flow-viewer.tsx` - Public viewer component
+- `app/embed/[token]/page.tsx` - Embed route
+- `app/embed/[token]/embed-flow-viewer.tsx` - Embed-optimized viewer
 - `app/dashboard/flows/components/share-flow-dialog.tsx` - Share dialog
+- `app/dashboard/flows/components/embed-code-generator.tsx` - Embed code generator
 - `app/api/images/[...path]/route.ts` - Image proxy with public access
 
 ---
@@ -167,10 +180,11 @@ model AnalyticsEvent {
 - Download QR code image
 - Display QR code in share dialog
 
-#### 🔲 Embed Codes
+#### ✅ Embed Codes
+- **Status:** Implemented
 - Generate embed code for iframe
-- Customizable embed dimensions
-- Embed preview in share dialog
+- Responsive and fixed size modes
+- Copy-to-clipboard in share dialog
 
 #### 🔲 Social Media Sharing
 - Share to Twitter, LinkedIn, Facebook

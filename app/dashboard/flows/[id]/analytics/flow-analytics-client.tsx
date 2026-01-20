@@ -562,6 +562,7 @@ export default function FlowAnalyticsClient({
       {/* Dialogs */}
       <ShareFlowDialog
         flowId={flowId}
+        flowName={flowName}
         open={showShareDialog}
         onOpenChange={setShowShareDialog}
       />
