@@ -21,6 +21,11 @@ const remotePatterns: Array<{
     hostname: "lh3.googleusercontent.com",
     pathname: "/**",
   },
+  {
+    protocol: "https",
+    hostname: "images.unsplash.com",
+    pathname: "/**",
+  },
 ];
 
 // Add R2 CDN domain if configured

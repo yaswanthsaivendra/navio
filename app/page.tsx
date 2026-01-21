@@ -1,9 +1,23 @@
-import { Hero } from "@/components/landing/hero";
+import {
+  Navbar,
+  HeroSection,
+  SocialProof,
+  HowItWorks,
+  Benefits,
+  CTASection,
+  Footer,
+} from "@/components/landing";
 
 export default function Home() {
   return (
     <main className="bg-background min-h-screen">
-      <Hero />
+      <Navbar />
+      <HeroSection />
+      <SocialProof />
+      <HowItWorks />
+      <Benefits />
+      <CTASection />
+      <Footer />
     </main>
   );
 }
