@@ -3,12 +3,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Image from "next/image";
 import { ArrowRight, Play, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 export function HeroSection() {
   const [email, setEmail] = useState("");
+  const [isPlaying, setIsPlaying] = useState(false);
 
   return (
     <section
@@ -22,101 +22,6 @@ export function HeroSection() {
       </div>
 
       <div className="container-landing relative">
-        {/* Floating UI Elements - Left Side */}
-        <div className="absolute top-20 left-0 hidden lg:block">
-          {/* Floating Card 1 */}
-          <div className="animate-fade-up relative -translate-x-1/4 opacity-0 delay-300">
-            <div className="border-border bg-card card-shadow w-[200px] rotate-[-8deg] rounded-xl border p-3">
-              <div className="mb-2 flex items-center gap-2">
-                <div className="bg-primary/10 h-6 w-6 rounded-lg" />
-                <div className="bg-muted h-3 w-20 rounded" />
-              </div>
-              <div className="space-y-1.5">
-                <div className="bg-muted h-2 w-full rounded" />
-                <div className="bg-muted h-2 w-3/4 rounded" />
-              </div>
-            </div>
-          </div>
-
-          {/* Floating Card 2 */}
-          <div className="animate-fade-up relative mt-8 translate-x-8 opacity-0 delay-400">
-            <div className="border-border bg-card card-shadow w-[180px] rotate-[4deg] rounded-xl border p-3">
-              <div className="text-muted-foreground mb-2 text-xs font-medium">
-                Colors and Gradients
-              </div>
-              <div className="grid grid-cols-5 gap-1.5">
-                {[
-                  "bg-gray-800",
-                  "bg-gray-400",
-                  "bg-orange-400",
-                  "bg-yellow-400",
-                  "bg-green-400",
-                ].map((color, i) => (
-                  <div key={i} className={`h-6 w-6 rounded-full ${color}`} />
-                ))}
-                {[
-                  "bg-gray-700",
-                  "bg-gray-300",
-                  "bg-orange-300",
-                  "bg-yellow-300",
-                  "bg-green-300",
-                ].map((color, i) => (
-                  <div key={i} className={`h-6 w-6 rounded-full ${color}`} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Floating UI Elements - Right Side */}
-        <div className="absolute top-16 right-0 hidden lg:block">
-          {/* Analytics Card */}
-          <div className="animate-fade-up relative translate-x-1/4 opacity-0 delay-300">
-            <div className="border-border bg-card card-shadow w-[220px] rotate-6 rounded-xl border p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-muted-foreground text-xs font-medium">
-                  Analytics
-                </span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-semibold text-green-500">
-                    +38.56%
-                  </span>
-                </div>
-              </div>
-              <div className="flex h-12 items-end justify-between gap-1">
-                {[40, 60, 45, 80, 55, 70, 90].map((h, i) => (
-                  <div
-                    key={i}
-                    className="bg-primary/20 w-4 rounded-sm"
-                    style={{ height: `${h}%` }}
-                  />
-                ))}
-              </div>
-              <div className="text-muted-foreground mt-2 flex justify-between text-[10px]">
-                <span>2,347</span>
-                <span>72.87%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Demo Card */}
-          <div className="animate-fade-up relative mt-6 -translate-x-4 opacity-0 delay-400">
-            <div className="border-border bg-card card-shadow w-[200px] rotate-[-4deg] overflow-hidden rounded-xl border">
-              <div className="from-primary/20 to-accent/20 relative h-24 bg-linear-to-br">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="bg-card/90 flex h-10 w-10 items-center justify-center rounded-full">
-                    <Play className="text-primary ml-0.5 h-4 w-4" />
-                  </div>
-                </div>
-              </div>
-              <div className="p-3">
-                <div className="bg-muted mb-1.5 h-2.5 w-24 rounded" />
-                <div className="bg-muted/60 h-2 w-16 rounded" />
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Main Hero Content - Centered */}
         <div className="relative z-10 mx-auto max-w-3xl text-center">
           {/* Badge */}
@@ -173,11 +78,11 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* Product Demo Screenshot */}
+        {/* Video Demo */}
         <div className="animate-fade-up mt-16 opacity-0 delay-400 md:mt-24">
-          <div className="relative mx-auto max-w-5xl">
+          <div className="relative mx-auto max-w-4xl">
             {/* Browser Frame */}
-            <div className="border-border bg-card card-shadow overflow-hidden rounded-xl border">
+            <div className="border-border bg-card card-shadow overflow-hidden rounded-2xl border">
               {/* Browser Chrome */}
               <div className="border-border bg-muted/30 flex items-center gap-2 border-b px-4 py-3">
                 <div className="flex gap-1.5">
@@ -185,150 +90,71 @@ export function HeroSection() {
                   <div className="h-3 w-3 rounded-full bg-yellow-400" />
                   <div className="h-3 w-3 rounded-full bg-green-400" />
                 </div>
-                <div className="ml-2 flex items-center gap-2">
-                  <div className="text-muted-foreground flex h-5 w-5 items-center justify-center rounded">
-                    ←
-                  </div>
-                  <div className="text-muted-foreground flex h-5 w-5 items-center justify-center rounded">
-                    →
-                  </div>
-                </div>
                 <div className="mx-4 flex-1">
-                  <div className="bg-muted text-muted-foreground mx-auto flex max-w-md items-center justify-center rounded-lg px-4 py-1.5 text-xs">
+                  <div className="bg-muted text-muted-foreground mx-auto flex max-w-sm items-center justify-center rounded-lg px-4 py-1.5 text-xs">
                     <span className="truncate">
-                      Interactive Overview of Navio
+                      app.navio.io/demo/product-tour
                     </span>
-                    <span className="ml-2">↻</span>
                   </div>
-                </div>
-                <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <span>⚡</span>
-                  <span>🔊</span>
-                  <span>↗</span>
-                  <span>⛶</span>
                 </div>
               </div>
 
-              {/* Demo Content */}
-              <div className="relative">
-                <Image
-                  src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80"
-                  alt="Navio product demo showing analytics dashboard"
-                  width={1200}
-                  height={675}
-                  className="w-full"
-                  priority
-                />
+              {/* Video Container */}
+              <div className="relative aspect-video bg-linear-to-br from-slate-900 to-slate-800">
+                {!isPlaying ? (
+                  /* Play Button Overlay */
+                  <div
+                    className="absolute inset-0 flex cursor-pointer items-center justify-center transition-opacity hover:opacity-90"
+                    onClick={() => setIsPlaying(true)}
+                  >
+                    {/* Thumbnail gradient overlay */}
+                    <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-black/20" />
 
-                {/* Overlay UI Elements */}
-                <div className="from-background/20 absolute inset-0 bg-linear-to-t to-transparent" />
-
-                {/* Top Bar Overlay */}
-                <div className="bg-card/95 border-border absolute top-0 right-0 left-0 flex items-center justify-between border-b px-4 py-2 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary flex h-7 w-7 items-center justify-center rounded-lg">
-                      <span className="text-primary-foreground text-xs font-bold">
-                        N
+                    {/* Play Button */}
+                    <div className="relative z-10 flex flex-col items-center gap-4">
+                      <div className="bg-primary shadow-primary/30 flex h-20 w-20 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105">
+                        <Play
+                          className="ml-1 h-8 w-8 text-white"
+                          fill="white"
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-white/90">
+                        Watch how Navio works
                       </span>
                     </div>
-                    <span className="text-foreground text-sm font-medium">
-                      Explore the Mercury Demo
-                    </span>
-                    <span className="text-primary cursor-pointer text-xs hover:underline">
-                      Customize your experience
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      navio
-                    </Badge>
-                    <Button size="sm" variant="outline" className="h-7 text-xs">
-                      Login
-                    </Button>
-                    <Button size="sm" className="bg-primary h-7 text-xs">
-                      Open Account
-                    </Button>
-                  </div>
-                </div>
 
-                {/* Floating Tooltip */}
-                <div className="bg-secondary text-secondary-foreground card-shadow animate-fade-up absolute right-1/4 bottom-1/4 max-w-[280px] rounded-xl p-4">
-                  <p className="mb-1 text-sm font-medium">
-                    Navio helps you create{" "}
-                    <span className="text-primary font-semibold">
-                      engaging interactive demos
-                    </span>{" "}
-                    in minutes.
-                  </p>
-                  <p className="text-secondary-foreground/80 mb-3 text-xs">
-                    Let&apos;s create a demo by hitting &quot;Record&quot; via
-                    the extension.
-                  </p>
-                  <Button size="sm" className="h-8 w-full text-xs">
-                    Next
-                  </Button>
-                </div>
-
-                {/* Recording Popup */}
-                <div className="bg-card border-border card-shadow absolute top-1/3 right-1/3 w-[200px] rounded-xl border p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-xs font-medium">navio</span>
-                    <div className="flex gap-1">
-                      <div className="bg-muted h-4 w-4 rounded" />
-                      <div className="bg-muted h-4 w-4 rounded" />
-                      <div className="bg-muted h-4 w-4 rounded" />
+                    {/* Demo preview elements */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                      <div className="grid w-full max-w-2xl grid-cols-3 gap-4 p-8">
+                        <div className="h-32 rounded-lg bg-white/10" />
+                        <div className="col-span-2 h-32 rounded-lg bg-white/10" />
+                        <div className="col-span-2 h-24 rounded-lg bg-white/10" />
+                        <div className="h-24 rounded-lg bg-white/10" />
+                      </div>
                     </div>
                   </div>
-                  <div className="text-muted-foreground mb-2 text-xs">
-                    Set Recording Dimensions
-                  </div>
-                  <Button
-                    size="sm"
-                    className="bg-primary mb-2 h-8 w-full text-xs"
-                  >
-                    <span className="mr-1">✨</span> Record Navio
-                  </Button>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 flex-1 text-xs"
-                    >
-                      Screenshot
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 flex-1 text-xs"
-                    >
-                      Screen Record
-                    </Button>
-                  </div>
-                </div>
+                ) : (
+                  /* Video Player */
+                  <iframe
+                    className="absolute inset-0 h-full w-full"
+                    src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&modestbranding=1"
+                    title="Navio Product Demo"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                )}
               </div>
             </div>
 
-            {/* Demo Type Tabs */}
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              {[
-                { icon: "📱", label: "Mobile demo" },
-                { icon: "✨", label: "Interactive", active: true },
-                { icon: "🎯", label: "Guided tour" },
-                { icon: "📦", label: "Sandbox" },
-                { icon: "🏠", label: "Demo hub" },
-              ].map((tab) => (
-                <button
-                  key={tab.label}
-                  className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                    tab.active
-                      ? "bg-card border-border card-shadow text-foreground border"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <span>{tab.icon}</span>
-                  <span>{tab.label}</span>
-                </button>
-              ))}
+            {/* Video duration badge */}
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <span className="text-muted-foreground text-sm">
+                🎬 2 min demo
+              </span>
+              <span className="text-muted-foreground text-sm">•</span>
+              <span className="text-muted-foreground text-sm">
+                No signup required
+              </span>
             </div>
           </div>
         </div>
