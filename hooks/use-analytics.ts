@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { z } from "zod";
 import {
   OverallAnalyticsSchema,
   FlowAnalyticsSchema,
   UsersEngagementOverTimeSchema,
   FlowAnalyticsOverTimeSchema,
   FlowStepAnalyticsSchema,
-  type z,
 } from "@/lib/validations/analytics";
 
 export type OverallAnalytics = z.infer<typeof OverallAnalyticsSchema>;
