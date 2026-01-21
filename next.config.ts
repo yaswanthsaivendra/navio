@@ -59,6 +59,20 @@ const nextConfig: NextConfig = {
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  async headers() {
+    return [
+      {
+        // Apply headers to embed routes only
+        source: "/embed/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors *;", // Allow embedding from any domain
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

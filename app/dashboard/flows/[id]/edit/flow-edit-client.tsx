@@ -241,7 +241,15 @@ export default function FlowEditClient({
           {/* Main Content Area */}
           <div className="bg-muted/30 flex flex-1 items-center justify-center overflow-auto p-4">
             {activeStep ? (
-              <StepScreenshotViewer step={activeStep} />
+              <StepScreenshotViewer
+                step={activeStep}
+                steps={steps}
+                activeStepIndex={activeStepIndex}
+                onNavigateBack={handlePrevious}
+                onNavigateForward={handleNext}
+                canGoBack={activeStepIndex > 0}
+                canGoForward={activeStepIndex < totalSteps - 1}
+              />
             ) : (
               <Skeleton className="h-[70vh] w-full max-w-6xl" />
             )}

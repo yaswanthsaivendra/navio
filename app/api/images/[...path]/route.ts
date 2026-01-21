@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { prisma } from "@/lib/db";
 
 // Initialize S3 client for Cloudflare R2
 const s3Client = new S3Client({
@@ -16,22 +17,62 @@ const s3Client = new S3Client({
 const BUCKET_NAME = process.env.R2_BUCKET_NAME || "screenshots";
 
 /**
+ * Extract flowId from image path
+ * Path format: screenshots/{flowId}/{stepId}/{type}-{timestamp}.{ext}
+ */
+function extractFlowIdFromPath(imagePath: string): string | null {
+  const parts = imagePath.split("/");
+  if (parts.length >= 2 && parts[0] === "screenshots") {
+    return parts[1] || null;
+  }
+  return null;
+}
+
+/**
+ * Check if a flow has an active share (public access)
+ */
+async function hasActiveShare(flowId: string): Promise<boolean> {
+  try {
+    const share = await prisma.flowShare.findUnique({
+      where: { flowId },
+    });
+    return !!share;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Proxy endpoint for R2 images
  * This allows serving images even if the R2 bucket is not publicly accessible
  * Uses S3 client to fetch images with authentication
+ *
+ * Public access: If image belongs to a shared flow, allow access without auth
+ * Private access: Requires authentication for non-shared flows
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
-  // Verify user is authenticated
-  const session = await auth();
-  if (!session?.user?.id) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
   const { path } = await params;
   const imagePath = path.join("/");
+
+  // Extract flowId from path
+  const flowId = extractFlowIdFromPath(imagePath);
+
+  // Check if this is a public share (flow has active share)
+  let isPublicShare = false;
+  if (flowId) {
+    isPublicShare = await hasActiveShare(flowId);
+  }
+
+  // If not a public share, require authentication
+  if (!isPublicShare) {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+  }
 
   if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID) {
     return new NextResponse("R2 not configured", { status: 500 });

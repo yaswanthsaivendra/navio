@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit, Trash2, ArrowLeft } from "lucide-react";
+import { Edit, Trash2, ArrowLeft, Share2, BarChart3 } from "lucide-react";
 import type { FlowWithSteps } from "@/types/flow";
 import StepScreenshotViewer from "../components/step-screenshot-viewer";
 import DeleteFlowDialog from "../components/delete-flow-dialog";
+import ShareFlowDialog from "../components/share-flow-dialog";
 import InlineEditableTitle from "../components/inline-editable-title";
 import { useFlow } from "@/hooks/use-flows";
 
@@ -31,6 +32,7 @@ export default function FlowDetailClient({
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   const steps = flow.steps;
   const activeStep = steps[activeStepIndex];
@@ -43,6 +45,10 @@ export default function FlowDetailClient({
 
   const handleEdit = useCallback(() => {
     router.push(`/dashboard/flows/${flow.id}/edit`);
+  }, [router, flow.id]);
+
+  const handleViewAnalytics = useCallback(() => {
+    router.push(`/dashboard/flows/${flow.id}/analytics`);
   }, [router, flow.id]);
 
   const handlePrevious = useCallback(() => {
@@ -172,6 +178,22 @@ export default function FlowDetailClient({
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={handleViewAnalytics}
+                title="View analytics"
+              >
+                <BarChart3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowShareDialog(true)}
+                title="Share flow"
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleEdit}
                 title="Edit flow steps and details"
               >
@@ -202,6 +224,12 @@ export default function FlowDetailClient({
       </div>
 
       {/* Dialogs */}
+      <ShareFlowDialog
+        flowId={flow.id}
+        flowName={flow.name}
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+      />
       <DeleteFlowDialog
         flow={flow}
         open={showDeleteDialog}

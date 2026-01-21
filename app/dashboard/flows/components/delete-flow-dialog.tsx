@@ -11,10 +11,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useDeleteFlow } from "@/hooks/use-flows";
-import type { FlowWithSteps } from "@/types/flow";
+import type { FlowListItem, FlowWithSteps } from "@/types/flow";
 
 type DeleteFlowDialogProps = {
-  flow: FlowWithSteps;
+  flow: FlowListItem | FlowWithSteps;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
